@@ -9,6 +9,8 @@ hi semshiAttribute       ctermfg=49  guifg=#00ffaf
 hi semshiSelf            ctermfg=249 guifg=#b2b2b2
 hi semshiUnresolved      ctermfg=226 guifg=#ffff00 cterm=underline gui=underline
 hi semshiSelected        ctermfg=231 guifg=#ffffff ctermbg=161 guibg=#d7005f
+hi semshiAnnotation      ctermfg=Magenta guifg=#ff00ff cterm=bold gui=bold
+" hi link semishiAnnotation String
 
 hi semshiErrorSign       ctermfg=231 guifg=#ffffff ctermbg=160 guibg=#d70000
 hi semshiErrorChar       ctermfg=231 guifg=#ffffff ctermbg=160 guibg=#d70000

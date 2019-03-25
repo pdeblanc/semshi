@@ -59,6 +59,7 @@ class Visitor:
         # Holds a copy of the current environment to avoid repeated copying
         self._cur_env = None
         self.nodes = []
+        self.in_annotation = 0
 
     def visit(self, node):
         """Recursively visit the node to build a list of names in their scopes.
@@ -132,13 +133,20 @@ class Visitor:
             node.lineno,
             node.col_offset,
             self._cur_env,
+            self.in_annotation > 0,
             # Using __dict__.get() is faster than getattr()
             node.__dict__.get('_target'),
         ))
 
     def _visit_arg(self, node):
         """Visit function argument."""
-        node = Node(node.arg, node.lineno, node.col_offset, self._cur_env)
+        node = Node(
+            node.arg,
+            node.lineno,
+            node.col_offset,
+            self._cur_env,
+            self.in_annotation > 0,
+        )
         self.nodes.append(node)
         # Register as unused parameter for now. The entry is removed if it's
         # found to be used later.
@@ -178,6 +186,7 @@ class Visitor:
             lineno,
             len(cur_line[:token.start[1]].encode('utf-8')),
             self._cur_env,
+            self.in_annotation > 0,
         ))
 
     def _visit_comp(self, node):
@@ -233,6 +242,7 @@ class Visitor:
                     node.lineno,
                     len(guess.encode('utf-8')) - len(target.encode('utf-8')),
                     self._cur_env,
+                    self.in_annotation > 0,
                     None,
                     IMPORTED,
                 ))
@@ -264,6 +274,7 @@ class Visitor:
                 # Exact byte offset of the token
                 len(cur_line[:token.start[1]].encode('utf-8')),
                 self._cur_env,
+                self.in_annotation > 0,
                 None,
                 IMPORTED,
             ))
@@ -297,7 +308,13 @@ class Visitor:
             token = advance(tokens)
             lineno = token.start[0] + line_idx
             column = token.start[1]
-        self.nodes.append(Node(node.name, lineno, column, self._cur_env))
+        self.nodes.append(Node(
+            node.name,
+            lineno,
+            column,
+            self._cur_env,
+            self.in_annotation > 0,
+        ))
 
     def _visit_global_nonlocal(self, node, keyword):
         line_idx = node.lineno - 1
@@ -311,6 +328,7 @@ class Visitor:
                     node.lineno,
                     offset,
                     self._cur_env,
+                    self.in_annotation > 0,
                 ))
                 # Add 2 bytes for the comma and space
                 offset += len(name.encode('utf-8')) + 2
@@ -327,6 +345,7 @@ class Visitor:
                 token.start[0] + line_idx,
                 len(cur_line[:token.start[1]].encode('utf-8')),
                 self._cur_env,
+                self.in_annotation > 0,
             ))
             # If there are more declared names...
             if more:
@@ -375,6 +394,7 @@ class Visitor:
             node.value.lineno,
             node.value.col_offset + len(target_name) + 1,
             self._env[:-1],
+            self.in_annotation > 0,
             None, # target
             ATTRIBUTE,
         )
@@ -389,6 +409,8 @@ class Visitor:
             value = node.__dict__.get(field, None)
             if value is None:
                 continue
+            if field == 'annotation':
+                self.in_annotation += 1
             value_type = type(value)
             if value_type is list:
                 for item in value:
@@ -399,3 +421,5 @@ class Visitor:
             # much more expensive that is, though.
             elif value_type not in (str, int, bytes):
                 self.visit(value)
+            if field == 'annotation':
+                self.in_annotation -= 1

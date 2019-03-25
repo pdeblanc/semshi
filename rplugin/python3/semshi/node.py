@@ -20,6 +20,8 @@ SELF = group('self')
 IMPORTED = group('imported')
 LOCAL = group('local')
 SELECTED = group('selected')
+ANNOTATION = group('annotation')
+# ANNOTATION = ATTRIBUTE
 
 more_builtins = {'__file__', '__path__', '__cached__'}
 builtins = set(vars(builtins)) | more_builtins
@@ -37,7 +39,16 @@ class Node:
     __slots__ = ['id', 'name', 'lineno', 'col', 'end', 'env',
                  'symname', 'symbol', 'hl_group', 'target', '_tup']
 
-    def __init__(self, name, lineno, col, env, target=None, hl_group=None):
+    def __init__(
+        self,
+        name,
+        lineno,
+        col,
+        env,
+        in_annotation,
+        target=None,
+        hl_group=None
+    ):
         self.id = next(Node.id_counter)
         self.name = name
         self.lineno = lineno
@@ -61,6 +72,8 @@ class Node:
             self.hl_group = hl_group
         else:
             self.hl_group = self._make_hl_group()
+        if in_annotation:
+            self.hl_group = ANNOTATION
         self.update_tup()
 
     def update_tup(self):
